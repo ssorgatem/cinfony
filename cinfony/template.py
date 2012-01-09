@@ -169,7 +169,7 @@ class Molecule(object):
     @property
     def spin(self): raise NotImplementedError
     @property
-    def sssr(self): return self.OBMol.GetSSSR()
+    def sssr(self): raise NotImplementedError
     def _gettitle(self): raise NotImplementedError
     def _settitle(self, val): raise NotImplementedError
     title = property(_gettitle, _settitle)
