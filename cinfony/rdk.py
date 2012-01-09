@@ -19,6 +19,8 @@ Global variables:
 
 import os
 
+from template import *
+
 from rdkit import Chem
 from rdkit.Chem import AllChem, Draw
 from rdkit.Chem import Descriptors
@@ -74,10 +76,10 @@ def readfile(format, filename):
     You can access the first molecule in a file using the next() method
     of the iterator:
         mol = readfile("smi", "myfile.smi").next()
-        
+
     You can make a list of the molecules in a file using:
         mols = list(readfile("smi", "myfile.smi"))
-        
+
     You can iterate over the molecules in a file as shown in the
     following code snippet:
     >>> atomtotal = 0
@@ -109,7 +111,7 @@ def readfile(format, filename):
         def smi_reader():
             for mol in iterator:
                 yield Molecule(mol)
-        return smi_reader()    
+        return smi_reader()
     else:
         raise ValueError, "%s is not a recognised RDKit format" % format
 
@@ -127,11 +129,11 @@ def readstring(format, string):
     >>> len(mymol.atoms)
     5
     """
-    format = format.lower()    
+    format = format.lower()
     if format=="mol":
         return Molecule(Chem.MolFromMolBlock(string))
     elif format=="smi":
-        mol = Chem.MolFromSmiles(string)        
+        mol = Chem.MolFromSmiles(string)
     else:
         raise ValueError,"%s is not a recognised RDKit format" % format
     if mol:
@@ -140,9 +142,9 @@ def readstring(format, string):
         raise IOError, "Failed to convert '%s' to format '%s'" % (
             string, format)
 
-class Outputfile(object):
+class Outputfile(Outputfile):
     """Represent a file to which *output* is to be sent.
-   
+
     Required parameters:
        format - see the outformats variable for a list of available
                 output formats
@@ -151,27 +153,23 @@ class Outputfile(object):
     Optional parameters:
        overwite -- if the output file already exists, should it
                    be overwritten? (default is False)
-                   
+
     Methods:
        write(molecule)
        close()
     """
     def __init__(self, format, filename, overwrite=False):
-        self.format = format
-        self.filename = filename
-        if not overwrite and os.path.isfile(self.filename):
-            raise IOError, "%s already exists. Use 'overwrite=True' to overwrite it." % self.filename
         if format=="sdf":
-            self._writer = Chem.SDWriter(self.filename)
+            self._writer = Chem.SDWriter(filename)
         elif format=="smi":
-            self._writer = Chem.SmilesWriter(self.filename, isomericSmiles=True)
+            self._writer = Chem.SmilesWriter(filename, isomericSmiles=True)
         else:
             raise ValueError,"%s is not a recognised RDKit format" % format
-        self.total = 0 # The total number of molecules written to the file
-    
+        super(Outputfile, self).__init__(format, filename, overwrite)
+
     def write(self, molecule):
         """Write a molecule to the output file.
-        
+
         Required parameters:
            molecule
         """
@@ -187,34 +185,22 @@ class Outputfile(object):
         self._writer.flush()
         del self._writer
 
-class Molecule(object):
+class Molecule(Molecule):
     """Represent an rdkit Molecule.
 
     Required parameter:
        Mol -- an RDKit Mol or any type of cinfony Molecule
-      
+
     Attributes:
        atoms, data, formula, molwt, title
-    
+
     Methods:
        addh(), calcfp(), calcdesc(), draw(), localopt(), make3D(), removeh(),
-       write() 
-      
+       write()
+
     The underlying RDKit Mol can be accessed using the attribute:
        Mol
     """
-    _cinfony = True
-    
-    def __init__(self, Mol):
-        if hasattr(Mol, "_cinfony"):
-            a, b = Mol._exchange
-            if a == 0:
-                molecule = readstring("smi", b)
-            else:
-                molecule = readstring("mol", b)            
-            Mol = molecule.Mol
-            
-        self.Mol = Mol
 
     @property
     def atoms(self): return [Atom(rdkatom) for rdkatom in self.Mol.GetAtoms()]
@@ -223,7 +209,7 @@ class Molecule(object):
     @property
     def molwt(self): return Descriptors.MolWt(self.Mol)
     @property
-    def formula(self): return Descriptors.MolecularFormula(self.Mol)    
+    def formula(self): return Descriptors.MolecularFormula(self.Mol)
     def _gettitle(self):
         # Note to self: maybe should implement the get() method for self.data
         if "_Name" in self.data:
@@ -242,14 +228,14 @@ class Molecule(object):
     def addh(self):
         """Add hydrogens."""
         self.Mol = Chem.AddHs(self.Mol)
-        
+
     def removeh(self):
         """Remove hydrogens."""
         self.Mol = Chem.RemoveHs(self.Mol)
-        
+
     def write(self, format="smi", filename=None, overwrite=False):
         """Write the molecule to a file or return a string.
-        
+
         Optional parameters:
            format -- see the informats variable for a list of available
                      output formats (default is "smi")
@@ -280,17 +266,6 @@ class Molecule(object):
         else:
             return result
 
-    def __iter__(self):
-        """Iterate over the Atoms of the Molecule.
-        
-        This allows constructions such as the following:
-           for atom in mymol:
-               print atom
-        """
-        return iter(self.atoms)
-
-    def __str__(self):
-        return self.write()
 
     def calcdesc(self, descnames=[]):
         """Calculate descriptor values.
@@ -315,7 +290,7 @@ class Molecule(object):
 
     def calcfp(self, fptype="rdkit"):
         """Calculate a molecular fingerprint.
-        
+
         Optional parameters:
            fptype -- the fingerprint type (default is "rdkit"). See the
                      fps variable for a list of of available fingerprint
@@ -325,7 +300,7 @@ class Molecule(object):
         if fptype=="rdkit":
             fp = Fingerprint(Chem.RDKFingerprint(self.Mol))
         elif fptype=="layered":
-            fp = Fingerprint(Chem.LayeredFingerprint(self.Mol))            
+            fp = Fingerprint(Chem.LayeredFingerprint(self.Mol))
         elif fptype=="maccs":
             fp = Fingerprint(Chem.MACCSkeys.GenMACCSKeys(self.Mol))
         elif fptype=="atompairs":
@@ -359,8 +334,8 @@ class Molecule(object):
         mol = Chem.Mol(self.Mol.ToBinary()) # Clone
         if not usecoords:
             AllChem.Compute2DCoords(mol)
-               
-        if filename: # Note: overwrite is allowed          
+
+        if filename: # Note: overwrite is allowed
             Draw.MolToFile(mol, filename)
         if show:
             if not tk:
@@ -381,7 +356,7 @@ class Molecule(object):
 
     def localopt(self, forcefield = "uff", steps = 500):
         """Locally optimize the coordinates.
-        
+
         Optional parameters:
            forcefield -- default is "uff". See the forcefields variable
                          for a list of available forcefields.
@@ -389,7 +364,7 @@ class Molecule(object):
 
         If the molecule does not have any coordinates, make3D() is
         called before the optimization.
-        """        
+        """
         forcefield = forcefield.lower()
         if self.Mol.GetNumConformers() == 0:
             self.make3D(forcefield)
@@ -397,7 +372,7 @@ class Molecule(object):
 
     def make3D(self, forcefield = "uff", steps = 50):
         """Generate 3D coordinates.
-        
+
         Optional parameters:
            forcefield -- default is "uff". See the forcefields variable
                          for a list of available forcefields.
@@ -407,7 +382,7 @@ class Molecule(object):
         local optimization is carried out with 50 steps and the
         UFF forcefield. Call localopt() if you want
         to improve the coordinates further.
-        """        
+        """
         forcefield = forcefield.lower()
         success = AllChem.EmbedMolecule(self.Mol)
         if success == -1: # Failed
@@ -416,22 +391,20 @@ class Molecule(object):
             if success == -1:
                 raise Error, "Embedding failed!"
         self.localopt(forcefield, steps)
-        
-class Atom(object):
+
+class Atom(Atom):
     """Represent an rdkit Atom.
 
     Required parameters:
        Atom -- an RDKit Atom
-     
+
     Attributes:
         atomicnum, coords, formalcharge
-    
+
     The original RDKit Atom can be accessed using the attribute:
        Atom
     """
-    
-    def __init__(self, Atom):
-        self.Atom = Atom
+
     @property
     def atomicnum(self): return self.Atom.GetAtomicNum()
     @property
@@ -445,26 +418,19 @@ class Atom(object):
     @property
     def formalcharge(self): return self.Atom.GetFormalCharge()
 
-    def __str__(self):
-        if hasattr(self, "coords"):
-            return "Atom: %d (%.2f %.2f %.2f)" % (self.atomicnum, self.coords[0],
-                                                    self.coords[1], self.coords[2])
-        else:
-            return "Atom: %d (no coords)" % (self.atomicnum)
-
-class Smarts(object):
+class Smarts(Smarts):
     """A Smarts Pattern Matcher
 
     Required parameters:
        smartspattern
-    
+
     Methods:
        findall(molecule)
-    
+
     Example:
     >>> mol = readstring("smi","CCN(CC)CC") # triethylamine
     >>> smarts = Smarts("[#6][#6]") # Matches an ethyl group
-    >>> print smarts.findall(mol) 
+    >>> print smarts.findall(mol)
     [(0, 1), (3, 4), (5, 6)]
 
     The numbers returned are the indices (starting from 0) of the atoms
@@ -479,17 +445,17 @@ class Smarts(object):
 
     def findall(self,molecule):
         """Find all matches of the SMARTS pattern to a particular molecule.
-        
+
         Required parameters:
            molecule
         """
         return molecule.Mol.GetSubstructMatches(self.rdksmarts)
 
-class MoleculeData(object):
+class MoleculeData(MoleculeData):
     """Store molecule data in a dictionary-type object
-    
+
     Required parameters:
-      Mol -- an RDKit Mol 
+      Mol -- an RDKit Mol
 
     Methods and accessor methods are like those of a dictionary except
     that the data is retrieved on-the-fly from the underlying Mol.
@@ -512,47 +478,24 @@ class MoleculeData(object):
     >>> print len(data), data.keys(), data.has_key("NSC")
     1 ['Comment'] False
     """
-    def __init__(self, Mol):
-        self._mol = Mol
-    def _testforkey(self, key):
-        if not key in self:
-            raise KeyError, "'%s'" % key
     def keys(self):
         return self._mol.GetPropNames()
     def values(self):
         return [self._mol.GetProp(x) for x in self.keys()]
-    def items(self):
-        return zip(self.keys(), self.values())
-    def __iter__(self):
-        return iter(self.keys())
-    def iteritems(self):
-        return iter(self.items())
-    def __len__(self):
-        return len(self.keys())
     def __contains__(self, key):
         return self._mol.HasProp(key)
     def __delitem__(self, key):
         self._testforkey(key)
         self._mol.ClearProp(key)
-    def clear(self):
-        for key in self:
-            del self[key]
-    def has_key(self, key):
-        return key in self
-    def update(self, dictionary):
-        for k, v in dictionary.iteritems():
-            self[k] = v
     def __getitem__(self, key):
         self._testforkey(key)
         return self._mol.GetProp(key)
     def __setitem__(self, key, value):
         self._mol.SetProp(key, str(value))
-    def __repr__(self):
-        return dict(self.iteritems()).__repr__()
 
-class Fingerprint(object):
+class Fingerprint(Fingerprint):
     """A Molecular Fingerprint.
-    
+
     Required parameters:
        fingerprint -- a vector calculated by one of the fingerprint methods
 
@@ -565,8 +508,6 @@ class Fingerprint(object):
        given two Fingerprints 'a', and 'b', the Tanimoto coefficient is given by:
           tanimoto = a | b
     """
-    def __init__(self, fingerprint):
-        self.fp = fingerprint
     def __or__(self, other):
         return rdkit.DataStructs.FingerprintSimilarity(self.fp, other.fp)
     def __getattr__(self, attr):
@@ -595,9 +536,9 @@ def _compressbits(bitvector, wordsize=32):
         ans.append(compressed)
 
     return ans
-            
+
 
 if __name__=="__main__": #pragma: no cover
     import doctest
     doctest.testmod()
-    
+
