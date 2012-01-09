@@ -184,14 +184,31 @@ class Molecule(object):
 #        else: #If it has no coordinate data:
 #            return (0, self.write("can").split()[0])
 
-    def __iter__(self):
-        """Iterate over the Atoms of the Molecule.
+    def addh(self):
+        """Add hydrogens."""
+        raise NotImplementedError
 
-        This allows constructions such as the following:
-           for atom in mymol:
-               print atom
+    def removeh(self):
+        """Remove hydrogens."""
+        raise NotImplementedError
+
+    def write(self, format="smi", filename=None, overwrite=False):
+        """Write the molecule to a file or return a string.
+
+        Optional parameters:
+           format -- see the informats variable for a list of available
+                     output formats (default is "smi")
+           filename -- default is None
+           overwite -- if the output file already exists, should it
+                       be overwritten? (default is False)
+
+        If a filename is specified, the result is written to a file.
+        Otherwise, a string is returned containing the result.
+
+        To write multiple molecules to the same file you should use
+        the Outputfile class.
         """
-        return iter(self.atoms)
+        raise NotImplementedError
 
     def calcdesc(self, descnames=[]):
         """Calculate descriptor values.
@@ -210,32 +227,28 @@ class Molecule(object):
             raise NotImplementedError
         return ans
 
-    def calcfp(self, fptype="FP2"):
+    def calcfp(self, fptype=""):
         """Calculate a molecular fingerprint.
 
         Optional parameters:
-           fptype -- the fingerprint type (default is "FP2"). See the
+           fptype -- the fingerprint type (default is ""). See the
                      fps variable for a list of of available fingerprint
                      types.
         """
         raise NotImplementedError
         return Fingerprint(fp)
-
-    def write(self, format="smi", filename=None, overwrite=False):
-        """Write the molecule to a file or return a string.
+    def draw(self, show=True, filename=None, update=False, usecoords=False):
+        """Create a 2D depiction of the molecule.
 
         Optional parameters:
-           format -- see the informats variable for a list of available
-                     output formats (default is "smi")
-           filename -- default is None
-           overwite -- if the output file already exists, should it
-                       be overwritten? (default is False)
+          show -- display on screen (default is True)
+          filename -- write to file (default is None)
+          update -- update the coordinates of the atoms to those
+                    determined by the structure diagram generator
+                    (default is False)
+          usecoords -- don't calculate 2D coordinates, just use
+                       the current coordinates (default is False)
 
-        If a filename is specified, the result is written to a file.
-        Otherwise, a string is returned containing the result.
-
-        To write multiple molecules to the same file you should use
-        the Outputfile class.
         """
         raise NotImplementedError
 
@@ -256,6 +269,7 @@ class Molecule(object):
             self.make3D(forcefield)
         raise NotImplementedError
 
+
     def make3D(self, forcefield = "", steps = 50):
         """Generate 3D coordinates.
 
@@ -273,78 +287,6 @@ class Molecule(object):
         self.addh()
         self.localopt(forcefield, steps)
 
-    def addh(self):
-        """Add hydrogens."""
-        raise NotImplementedError
-
-    def removeh(self):
-        """Remove hydrogens."""
-        raise NotImplementedError
-
-    def __str__(self):
-        return self.write()
-
-    def draw(self, show=True, filename=None, update=False, usecoords=False):
-        """Create a 2D depiction of the molecule.
-
-        Optional parameters:
-          show -- display on screen (default is True)
-          filename -- write to file (default is None)
-          update -- update the coordinates of the atoms to those
-                    determined by the structure diagram generator
-                    (default is False)
-          usecoords -- don't calculate 2D coordinates, just use
-                       the current coordinates (default is False)
-
-        """
-        raise NotImplementedError
-
-class Fingerprint(object):
-    """A Molecular Fingerprint.
-
-    Required parameters:
-       fingerprint -- a string of 0's and 1's representing a binary fingerprint
-
-    Attributes:
-       fp -- the underlying fingerprint object
-       bits -- a list of bits set in the Fingerprint
-
-    Methods:
-       The "|" operator can be used to calculate the Tanimoto coeff. For example,
-       given two Fingerprints 'a', and 'b', the Tanimoto coefficient is given by:
-          tanimoto = a | b
-    """
-    def __init__(self, fingerprint):
-        self.fp = fingerprint
-    def __or__(self, other):
-        mybits = set(self.bits)
-        otherbits = set(other.bits)
-        return len(mybits&otherbits) / float(len(mybits|otherbits))
-    @property
-    def bits(self):
-        raise NotImplementedError
-    def __str__(self):
-        return ", ".join([str(x) for x in self.fp])
-
-def _findbits(fp, bitsperint):
-    """Find which bits are set in a list/vector.
-
-    This function is used by the Fingerprint class.
-
-    >>> _findbits([13, 71], 8)
-    [1, 3, 4, 9, 10, 11, 15]
-    """
-    ans = []
-    start = 1
-    for x in fp:
-        i = start
-        while x > 0:
-            if x % 2:
-                ans.append(i)
-            x >>= 1
-            i += 1
-        start += bitsperint
-    return ans
 
 class Atom(object):
     """Represent a backend atom.
@@ -406,9 +348,11 @@ class Atom(object):
     def vector(self): raise NotImplementedError
 
     def __str__(self):
-        c = self.coords
-        return "Atom: %d (%.2f %.2f %.2f)" % (self.atomicnum, c[0], c[1], c[2])
-
+        if hasattr(self, "coords"):
+            return "Atom: %d (%.2f %.2f %.2f)" % (self.atomicnum, self.coords[0],
+                                                    self.coords[1], self.coords[2])
+        else:
+            return "Atom: %d (no coords)" % (self.atomicnum)
 
 class Smarts(object):
     """A Smarts Pattern Matcher
@@ -476,28 +420,17 @@ class MoleculeData(object):
     """
     def __init__(self, mol):
         self._mol = mol
-    def _data(self):
-        raise NotImplementedError
     def _testforkey(self, key):
         if not key in self:
             raise KeyError("'%s'" % key)
-    def keys(self):
-        raise NotImplementedError
-    def values(self):
-        raise NotImplementedError
     def items(self):
         return zip(self.keys(), self.values())
     def __iter__(self):
         return iter(self.keys())
+    def __len__(self):
+        return len(self.keys())
     def iteritems(self):
         return iter(self.items())
-    def __len__(self):
-        return len(self._data())
-    def __contains__(self, key):
-        raise NotImplementedError
-    def __delitem__(self, key):
-        self._testforkey(key)
-        raise NotImplementedError
     def clear(self):
         for key in self:
             del self[key]
@@ -506,13 +439,71 @@ class MoleculeData(object):
     def update(self, dictionary):
         for k, v in dictionary.iteritems():
             self[k] = v
+    def __repr__(self):
+        return dict(self.iteritems()).__repr__()
+###Implement the fllowing methods###
+    def keys(self):
+        raise NotImplementedError
+    def values(self):
+        raise NotImplementedError
+    def __contains__(self, key):
+        raise NotImplementedError
+    def __delitem__(self, key):
+        self._testforkey(key)
+        raise NotImplementedError
     def __getitem__(self, key):
         self._testforkey(key)
         raise NotImplementedError
     def __setitem__(self, key, value):
         raise NotImplementedError
-    def __repr__(self):
-        return dict(self.iteritems()).__repr__()
+
+
+class Fingerprint(object):
+    """A Molecular Fingerprint.
+
+    Required parameters:
+       fingerprint -- a string of 0's and 1's representing a binary fingerprint
+
+    Attributes:
+       fp -- the underlying fingerprint object
+       bits -- a list of bits set in the Fingerprint
+
+    Methods:
+       The "|" operator can be used to calculate the Tanimoto coeff. For example,
+       given two Fingerprints 'a', and 'b', the Tanimoto coefficient is given by:
+          tanimoto = a | b
+    """
+    def __init__(self, fingerprint):
+        self.fp = fingerprint
+    def __or__(self, other):
+        mybits = set(self.bits)
+        otherbits = set(other.bits)
+        return len(mybits&otherbits) / float(len(mybits|otherbits))
+    @property
+    def bits(self):
+        raise NotImplementedError
+    def __str__(self):
+        return ", ".join([str(x) for x in self.fp])
+
+def _findbits(fp, bitsperint):
+    """Find which bits are set in a list/vector.
+
+    This function is used by the Fingerprint class.
+
+    >>> _findbits([13, 71], 8)
+    [1, 3, 4, 9, 10, 11, 15]
+    """
+    ans = []
+    start = 1
+    for x in fp:
+        i = start
+        while x > 0:
+            if x % 2:
+                ans.append(i)
+            x >>= 1
+            i += 1
+        start += bitsperint
+    return ans
 
 if __name__=="__main__": #pragma: no cover
     import doctest
