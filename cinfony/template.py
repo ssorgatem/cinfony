@@ -78,11 +78,6 @@ def readstring(format, string):
 class Outputfile(object):
     """Represent a file to which *output* is to be sent.
 
-    Although it's possible to write a single molecule to a file by
-    calling the write() method of a molecule, if multiple molecules
-    are to be written to the same file you should use the Outputfile
-    class.
-
     Required parameters:
        format - see the outformats variable for a list of available
                 output formats
