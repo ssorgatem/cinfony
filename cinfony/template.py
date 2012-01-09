@@ -18,15 +18,6 @@ Global variables:
 
 import os.path
 
-# PIL and Tkinter
-try:
-    import Tkinter as tk
-    import Image as PIL
-    import ImageTk as piltk
-except ImportError: #pragma: no cover
-    tk = None
-    PILtk = None
-
 fps = []
 """A list of supported fingerprint types"""
 descs = []
@@ -51,10 +42,10 @@ def readfile(format, filename):
     You can access the first molecule in a file using the next() method
     of the iterator:
         mol = readfile("smi", "myfile.smi").next()
-        
+
     You can make a list of the molecules in a file using:
         mols = list(readfile("smi", "myfile.smi"))
-        
+
     You can iterate over the molecules in a file as shown in the
     following code snippet:
     >>> atomtotal = 0
@@ -85,12 +76,12 @@ def readstring(format, string):
 
 class Outputfile(object):
     """Represent a file to which *output* is to be sent.
-   
+
     Although it's possible to write a single molecule to a file by
     calling the write() method of a molecule, if multiple molecules
     are to be written to the same file you should use the Outputfile
     class.
-    
+
     Required parameters:
        format - see the outformats variable for a list of available
                 output formats
@@ -99,7 +90,7 @@ class Outputfile(object):
     Optional parameters:
        overwrite -- if the output file already exists, should it
                    be overwritten? (default is False)
-                   
+
     Methods:
        write(molecule)
        close()
@@ -110,18 +101,18 @@ class Outputfile(object):
         if not overwrite and os.path.isfile(self.filename):
             raise IOError("%s already exists. Use 'overwrite=True' to overwrite it." % self.filename)
         self.total = 0 # The total number of molecules written to the file
-    
+
     def write(self, molecule):
         """Write a molecule to the output file.
-        
+
         Required parameters:
            molecule
         """
         if not self.filename:
             raise IOError("Outputfile instance is closed.")
-  
+
         raise NotImplementedError
-        
+
         self.total += 1
 
     def close(self):
@@ -134,23 +125,23 @@ class Molecule(object):
 
     Required parameter:
        Mol -- a backend molecule or any type of cinfony Molecule
- 
+
     Attributes:
-       atoms, charge, conformers, data, dim, energy, exactmass, formula, 
+       atoms, charge, conformers, data, dim, energy, exactmass, formula,
        molwt, spin, sssr, title, unitcell.
     (refer to the Open Babel library documentation for more info).
-    
+
     Methods:
        addh(), calcfp(), calcdesc(), draw(), localopt(), make3D(), removeh(),
-       write() 
-      
+       write()
+
     The underlying backend molecule can be accessed using the attribute:
        Mol
     """
     _cinfony = True
 
     def __init__(self, Mol):
-        
+
         if hasattr(Mol, "_cinfony"):
             a, b = Mol._exchange
             if a == 0:
@@ -160,7 +151,7 @@ class Molecule(object):
             Mol = molecule.Mol
 
         self.Mol = Mol
- 
+
     @property
     def atoms(self): raise NotImplementedError
     @property
@@ -193,13 +184,13 @@ class Molecule(object):
     def _exchange(self):
         raise NotImplementedError
 #        if self.Mol has coordinate data:
-#            return (1, self.write("mol")) 
+#            return (1, self.write("mol"))
 #        else: #If it has no coordinate data:
 #            return (0, self.write("can").split()[0])
 
     def __iter__(self):
         """Iterate over the Atoms of the Molecule.
-        
+
         This allows constructions such as the following:
            for atom in mymol:
                print atom
@@ -220,12 +211,12 @@ class Molecule(object):
             descnames = descs
         ans = {}
         for descname in descnames:
-	  raise NotImplementedError
+            raise NotImplementedError
         return ans
-    
+
     def calcfp(self, fptype="FP2"):
         """Calculate a molecular fingerprint.
-        
+
         Optional parameters:
            fptype -- the fingerprint type (default is "FP2"). See the
                      fps variable for a list of of available fingerprint
@@ -236,7 +227,7 @@ class Molecule(object):
 
     def write(self, format="smi", filename=None, overwrite=False):
         """Write the molecule to a file or return a string.
-        
+
         Optional parameters:
            format -- see the informats variable for a list of available
                      output formats (default is "smi")
@@ -254,7 +245,7 @@ class Molecule(object):
 
     def localopt(self, forcefield='', steps=500):
         """Locally optimize the coordinates.
-        
+
         Optional parameters:
            forcefield -- default is "". See the forcefields variable
                          for a list of available forcefields.
@@ -268,10 +259,10 @@ class Molecule(object):
         if self.dim != 3:
             self.make3D(forcefield)
         raise NotImplementedError
-    
+
     def make3D(self, forcefield = "", steps = 50):
         """Generate 3D coordinates.
-        
+
         Optional parameters:
            forcefield -- default is "". See the forcefields variable
                          for a list of available forcefields.
@@ -293,7 +284,7 @@ class Molecule(object):
     def removeh(self):
         """Remove hydrogens."""
         raise NotImplementedError
-        
+
     def __str__(self):
         return self.write()
 
@@ -314,7 +305,7 @@ class Molecule(object):
 
 class Fingerprint(object):
     """A Molecular Fingerprint.
-    
+
     Required parameters:
        fingerprint -- a string of 0's and 1's representing a binary fingerprint
 
@@ -335,10 +326,10 @@ class Fingerprint(object):
         return len(mybits&otherbits) / float(len(mybits|otherbits))
     @property
     def bits(self):
-        raise NotImplementedError   
+        raise NotImplementedError
     def __str__(self):
         return ", ".join([str(x) for x in self.fp])
-        
+
 def _findbits(fp, bitsperint):
     """Find which bits are set in a list/vector.
 
@@ -358,13 +349,13 @@ def _findbits(fp, bitsperint):
             i += 1
         start += bitsperint
     return ans
- 
+
 class Atom(object):
     """Represent a backend atom.
 
     Required parameter:
        Atom -- a backend Atom
-        
+
     Attributes:
        atomicmass, atomicnum, cidx, coords, coordidx, exactmass,
        formalcharge, heavyvalence, heterovalence, hyb, idx,
@@ -372,7 +363,7 @@ class Atom(object):
        valence, vector.
 
     (refer to the backend documentation for more info).
-    
+
     The original Atom can be accessed using the attribute:
        Atom
     """
@@ -382,41 +373,41 @@ class Atom(object):
 
     @property
     def coords(self):
-        raise NotImplementedError 
+        raise NotImplementedError
     @property
-    def atomicmass(self): raise NotImplementedError 
+    def atomicmass(self): raise NotImplementedError
     @property
-    def atomicnum(self): raise NotImplementedError 
+    def atomicnum(self): raise NotImplementedError
     @property
-    def cidx(self): raise NotImplementedError 
+    def cidx(self): raise NotImplementedError
     @property
-    def coordidx(self): raise NotImplementedError 
+    def coordidx(self): raise NotImplementedError
     @property
-    def exactmass(self): raise NotImplementedError 
+    def exactmass(self): raise NotImplementedError
     @property
-    def formalcharge(self): raise NotImplementedError 
+    def formalcharge(self): raise NotImplementedError
     @property
-    def heavyvalence(self): raise NotImplementedError 
+    def heavyvalence(self): raise NotImplementedError
     @property
-    def heterovalence(self): raise NotImplementedError 
+    def heterovalence(self): raise NotImplementedError
     @property
-    def hyb(self): raise NotImplementedError 
+    def hyb(self): raise NotImplementedError
     @property
-    def idx(self): raise NotImplementedError 
+    def idx(self): raise NotImplementedError
     @property
-    def implicitvalence(self): raise NotImplementedError 
+    def implicitvalence(self): raise NotImplementedError
     @property
-    def isotope(self): raise NotImplementedError 
+    def isotope(self): raise NotImplementedError
     @property
-    def partialcharge(self): raise NotImplementedError 
+    def partialcharge(self): raise NotImplementedError
     @property
-    def spin(self): raise NotImplementedError 
+    def spin(self): raise NotImplementedError
     @property
-    def type(self): raise NotImplementedError 
+    def type(self): raise NotImplementedError
     @property
-    def valence(self): raise NotImplementedError 
+    def valence(self): raise NotImplementedError
     @property
-    def vector(self): raise NotImplementedError 
+    def vector(self): raise NotImplementedError
 
     def __str__(self):
         c = self.coords
@@ -428,14 +419,14 @@ class Smarts(object):
 
     Required parameters:
        smartspattern
-    
+
     Methods:
        findall(molecule)
-    
+
     Example:
     >>> mol = readstring("smi","CCN(CC)CC") # triethylamine
     >>> smarts = Smarts("[#6][#6]") # Matches an ethyl group
-    >>> print smarts.findall(mol) 
+    >>> print smarts.findall(mol)
     [(1, 2), (4, 5), (6, 7)]
 
     The numbers returned are the indices (starting from 1) of the atoms
@@ -444,27 +435,27 @@ class Smarts(object):
     """
     def __init__(self,smartspattern):
         """Initialise with a SMARTS pattern."""
-        raise NotImplementedError 
+        raise NotImplementedError
     def findall(self,molecule):
         """Find all matches of the SMARTS pattern to a particular molecule.
-        
+
         Required parameters:
            molecule
         """
-        raise NotImplementedError 
+        raise NotImplementedError
     def match(self, molecule):
         """Does a SMARTS pattern match a particular molecule?
-        
+
         Required parameters:
            molecule
         """
-        raise NotImplementedError 
-        
+        raise NotImplementedError
+
 class MoleculeData(object):
     """Store molecule data in a dictionary-type object
-    
+
     Required parameters:
-      mol -- a backend Mol 
+      mol -- a backend Mol
 
     Methods and accessor methods are like those of a dictionary except
     that the data is retrieved on-the-fly from the underlying Mol.
@@ -490,14 +481,14 @@ class MoleculeData(object):
     def __init__(self, mol):
         self._mol = mol
     def _data(self):
-        raise NotImplementedError 
+        raise NotImplementedError
     def _testforkey(self, key):
         if not key in self:
             raise KeyError("'%s'" % key)
     def keys(self):
-        raise NotImplementedError 
+        raise NotImplementedError
     def values(self):
-        raise NotImplementedError 
+        raise NotImplementedError
     def items(self):
         return zip(self.keys(), self.values())
     def __iter__(self):
@@ -507,10 +498,10 @@ class MoleculeData(object):
     def __len__(self):
         return len(self._data())
     def __contains__(self, key):
-        raise NotImplementedError 
+        raise NotImplementedError
     def __delitem__(self, key):
         self._testforkey(key)
-        raise NotImplementedError 
+        raise NotImplementedError
     def clear(self):
         for key in self:
             del self[key]
@@ -521,12 +512,12 @@ class MoleculeData(object):
             self[k] = v
     def __getitem__(self, key):
         self._testforkey(key)
-        raise NotImplementedError 
+        raise NotImplementedError
     def __setitem__(self, key, value):
         raise NotImplementedError
     def __repr__(self):
         return dict(self.iteritems()).__repr__()
- 
+
 if __name__=="__main__": #pragma: no cover
     import doctest
     doctest.testmod(verbose=True)
