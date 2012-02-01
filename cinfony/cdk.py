@@ -428,6 +428,20 @@ class Molecule(object):
                 pass
         return ans
 
+    def make3D(self, forcefield = 'mm2'):
+        """Generate 3D coordinates.
+
+        Optional parameters:
+           forcefield -- default is "uff". See the forcefields variable
+                         for a list of available forcefields.
+        """
+        forcefield = forcefield.lower()
+        if forcefield not in forcefields:
+            print('Forcefield %s is not supported' % forcefield)
+            return
+        builder = cdk.modeling.builder3d.ModelBuilder3D.getInstance(cdk.modeling.builder3d.TemplateHandler3D.getInstance(),forcefield)
+        self.Molecule = builder.generate3DCoordinates(self.Molecule, False)
+
     def draw(self, show=True, filename=None, update=False,
              usecoords=False):
         """Create a 2D depiction of the molecule.
