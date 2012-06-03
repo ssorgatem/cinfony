@@ -95,7 +95,7 @@ def readstring(format, string):
                 input formats
        string
 
-    Note: For InChIKeys a list of molecules is returned.
+    Note: For InChIKeys a list of molecules may be returned.
 
     Example:
     >>> input = "C1=CC=CS1"
@@ -110,7 +110,12 @@ def readstring(format, string):
     else:
         smiles = string
     if format == "inchikey":
-        return [Molecule(smile) for smile in smiles.split("\n")]
+        mol_list = [Molecule(smile) for smile in smiles.split("\n")]
+        if len(mol_list) == 1:
+            return mol_list[0]
+        else:
+            print 'More than one SMILES found for %s' % string
+            return mol_list
     else:
         mol = Molecule(smiles)
         if format == "name":
